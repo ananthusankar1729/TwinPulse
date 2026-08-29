@@ -1,0 +1,31 @@
+station_id,station_type,normal_cycle_time,sensor_coverage
+S01,Body Construction,73,HIGH
+S02,Body Construction,76,HIGH
+S03,Body Construction,79,HIGH
+S04,Body Construction,82,PARTIAL
+S05,Body Construction,70,HIGH
+S06,Body Construction,73,HIGH
+S07,Body Construction,76,PARTIAL
+S08,Body Construction,79,PARTIAL
+S09,Body Construction,82,HIGH
+S10,Body Construction,70,HIGH
+S11,Paint,89,HIGH
+S12,Paint,93,PARTIAL
+S13,Paint,97,PARTIAL
+S14,Paint,101,MANUAL
+S15,Paint,85,HIGH
+S16,Paint,89,PARTIAL
+S17,Paint,93,HIGH
+S18,Paint,97,PARTIAL
+S19,Paint,101,MANUAL
+S20,Paint,85,HIGH
+S21,Final Assembly,68,MANUAL
+S22,Final Assembly,71,HIGH
+S23,Final Assembly,74,MANUAL
+S24,Final Assembly,77,PARTIAL
+S25,Final Assembly,65,MANUAL
+S26,Final Assembly,68,MANUAL
+S27,Final Assembly,71,PARTIAL
+S28,Final Assembly,74,MANUAL
+S29,Final Assembly,77,MANUAL
+S30,Final Assembly,65,HIGH

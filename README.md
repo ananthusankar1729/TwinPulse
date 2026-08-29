@@ -1,68 +1,138 @@
-TwinPulse
-Adaptive Digital Twin for Vehicle Assembly Lines
-Accenture Innovation Challenge 2026 — Problem Track 4: DigitalTwin.ai
-Problem
-Modern vehicle assembly lines are made up of dozens of interdependent stations. A quiet degradation at one upstream station — a torque tool drifting, a bearing starting to vibrate — often stays invisible until it surfaces as a costly defect several stations downstream. By then, the causal trail is cold, sensors may have gaps, and operators are left reacting instead of preventing.
-Solution
-TwinPulse is a lightweight, explainable digital twin that:
-Continuously scores every station for anomaly, bottleneck risk, and defect risk using transparent statistics (not black-box ML).
-Detects when a sensor is missing and estimates the value using neighboring stations and rolling history — clearly labeling it AI Inferred with a confidence score, instead of pretending it's measured.
-Traces a downstream defect backward through the line and identifies the most likely contributor station, with supporting evidence.
-Lets an operator simulate an intervention ("what if we reduce cycle time here?") and see the projected effect on risk and throughput before committing to a real change.
-Key Features
-🏭 Live production flow view — 20 stations rendered as a flow with 🟢/🟡/🔴 status.
-🔮 Predictive risk scoring — bottleneck risk & defect risk computed from real deviations in the synthetic dataset, not hardcoded.
-🧩 Sensor-gap handling — vibration & temperature at the affected station are deliberately blanked and reconstructed, with a transparent, data-availability-based confidence score.
-🔍 Root-cause tracing — ranks upstream stations by anomaly score and proximity to the downstream defect, surfacing a "likely contributor," never a "proven cause."
-🧪 What-if simulation — compares three interventions (reduce cycle time / increase capacity / no action) against current state and recommends the best one.
-Architecture
-Synthetic Data Generator  →  Sensor Gap + Inference  →  Station-Level Analytics
-        (NumPy/Pandas)         (neighbor + rolling avg)   (anomaly / bottleneck / defect risk)
-                                                                    │
-                                                                    ▼
-                                                      Root-Cause Ranking (upstream trace)
-                                                                    │
-                                                                    ▼
-                                                       What-If Simulation Engine
-                                                                    │
-                                                                    ▼
-                                                        Streamlit Dashboard (4 tabs)
-Everything runs in a single process — no database, no external API, no cloud service, and no connection to real machinery or PLCs.
-Technology Stack
-Python 3
-Streamlit — dashboard UI
-Pandas / NumPy — synthetic data generation and statistics
-Plotly — interactive charts
-No deep learning, no external APIs, no authentication, no Docker — by design, to keep the prototype fully self-contained and auditable.
-Synthetic Data Assumptions
-All data in this prototype is simulated, generated with a fixed random seed for reproducibility. It is illustrative only and does not represent any real plant, vehicle program, or supplier.
-20 stations × 300 vehicles (6,000 station-visits).
-Each station has its own baseline cycle time, queue length, throughput, torque, temperature, and vibration, with normal random noise.
-Station 8 is seeded with a gradual degradation that ramps up over the course of the run: cycle time and queue length rise, torque becomes more variable, vibration and temperature increase, and its own throughput falls.
-Downstream stations after Station 8 show a decaying throughput and queue effect proportional to how degraded Station 8 was for that vehicle.
-Defects are injected probabilistically for vehicles that passed through Station 8 while it was degraded, surfacing at inspection points around Stations 15–20 — mirroring how real defects are often caught well after the true cause.
-Vibration and temperature readings at Station 8 are deliberately removed to simulate a sensor outage, then reconstructed from neighboring stations (7 & 9) and a rolling historical average, each estimate carrying a confidence score based on how many reference signals were available and how well they agreed — with confidence reduced further as the underlying process visibly drifts, since a neighbor-based proxy becomes less reliable during active degradation.
-How to Run
-bash
+# TwinPulse
+
+An adaptive digital twin prototype for a mixed-model vehicle assembly line,
+built for the Accenture Innovation Challenge 2026 (DigitalTwin.ai track).
+
+> **Note:** This project uses entirely SIMULATED / synthetic data. No real
+> enterprise, company, or manufacturer data is used anywhere in this
+> prototype.
+
+## Project Status: Stage 1 — Foundation & Synthetic Data
+
+This is the **first stage** of development. At this stage we have built:
+
+- The project scaffolding.
+- A reproducible synthetic production-data generator (`src/data_generator.py`).
+- A validation script that checks the generated data behaves the way a
+  realistic assembly line data would (`notebooks/validate_dataset.py`).
+
+**Not built yet** (future stages): sensor-gap inference/imputation,
+anomaly/defect prediction models, and the Streamlit dashboard (`app.py`
+is currently a placeholder).
+
+## The Simulated Line
+
+- **30 stations**, in three phases:
+  - `S01`–`S10`: Body Construction
+  - `S11`–`S20`: Paint
+  - `S21`–`S30`: Final Assembly
+- Each station has a **sensor coverage level**: `HIGH`, `PARTIAL`, or
+  `MANUAL` — sensor coverage is deliberately uneven across the line, just
+  like a real patchwork plant.
+- **400 vehicles** flow sequentially through all 30 stations, producing
+  12,000 station-level observations.
+
+## The Hidden Scenario (by design)
+
+Station **S08** has a slow, gradual equipment degradation baked into the
+data (rising cycle time, torque variability, vibration, temperature, and
+queue length over the course of the simulated shift/run). It is **not** a
+sudden failure — it ramps up smoothly.
+
+Critically, S08 is a `PARTIAL` coverage station: its **vibration and
+temperature sensors are missing** in the dataset, even though those are
+exactly the signals that would most obviously reveal the problem. Only
+`cycle_time`, `queue_length`, and `torque` are observable there. This is
+intentional — a later stage of this project is expected to infer the
+missing signals from what *is* observable, rather than reading them
+directly.
+
+The consequence of the Station 8 issue shows up downstream: the defect
+rate at the **S22** inspection station rises noticeably as the run
+progresses (roughly 4–5% early in the run vs. ~20–25% later), even though
+nothing about S22 itself changed. This is the "signal to find" for later
+analytics/ML work.
+
+## Project Structure
+
+```
+TwinPulse/
+├── data/
+│   ├── production_data.csv   # generated vehicle x station observations
+│   └── stations.csv          # station metadata
+├── src/
+│   └── data_generator.py     # the synthetic data generator (this stage)
+├── notebooks/
+│   └── validate_dataset.py   # validation checks + summary stats
+├── models/                   # (empty for now — future ML stage)
+├── app.py                    # placeholder for the future dashboard
+├── requirements.txt
+└── README.md
+```
+
+## How to Generate the Dataset
+
+```bash
 pip install -r requirements.txt
-streamlit run app.py
-The app opens in your browser at http://localhost:8501.
-Demo Flow
-Land on the dashboard — top metrics already show an elevated bottleneck risk and an early-warning banner.
-🏭 Digital Twin — see the 20-station flow; Station 8 is flagged 🔴. Select it to see measured vs. sensor-coverage detail and its degrading trend.
-🔮 Predictions — see the bottleneck and defect risk cards, and the plain-language explanation of why (cycle time / queue / throughput deviations).
-🔍 Root Cause — see the backward trace to the downstream defect, Station 8 highlighted as the likely contributor with a confidence score and supporting signals, plus its AI-inferred vibration and temperature values.
-🧪 What-If — choose an intervention (reduce cycle time, increase capacity, or none), see the current-vs-simulated comparison table, and the recommended option.
-The four tabs tell one continuous story — detection → prediction → explanation → action — rather than four disconnected features.
-Limitations
-All data is synthetic; no real plant, vehicle, or supplier data was used or referenced.
-Risk scores and confidence values are produced by simple, transparent statistical rules chosen for explainability and speed of development, not by trained or validated machine-learning models.
-The "likely contributor" identified by root-cause tracing is a statistical inference based on anomaly strength and proximity — it is not a certified or proven root cause.
-The what-if simulation projects outcomes using simplified, deterministic adjustment rules; it does not model real physical or mechanical constraints of an actual line.
-There is no live connection to sensors, PLCs, MES, or any other plant system.
-Future Scope
-Replace synthetic generation with ingestion from real (anonymized) plant telemetry, validated against actual production outcomes.
-Upgrade anomaly detection and root-cause inference to calibrated statistical or ML models once sufficient labeled data is available, while preserving explainability.
-Extend sensor-gap inference with more sophisticated imputation (e.g., multivariate regression, Kalman filtering) and quantify inferred-vs-measured accuracy against ground truth once available.
-Add multi-line and multi-plant views, historical trend storage, and alerting/notification integration.
-Expand the what-if engine to support combined and sequenced interventions, and to incorporate cost/ROI tradeoffs for recommendations.
+python src/data_generator.py
+```
+
+This writes `data/stations.csv` and `data/production_data.csv`. The
+generator uses a fixed random seed (`RANDOM_SEED = 42` in
+`src/data_generator.py`), so re-running it always produces an identical
+dataset — this is verified automatically by the validation script.
+
+## How to Verify the Dataset (including the hidden Station 8 scenario)
+
+```bash
+python notebooks/validate_dataset.py
+```
+
+This checks and prints evidence for:
+
+1. There are exactly 30 stations.
+2. Multiple vehicles (400) are represented, each passing through all 30
+   stations.
+3. Missing sensor values exist (structurally, based on each station's
+   sensor coverage level).
+4. **Station 8 shows gradual degradation over time** — cycle time, queue
+   length, and torque variability all trend upward across the run, in a
+   smooth ramp rather than a sudden jump.
+5. Defects occur downstream, concentrated at the S22 inspection point,
+   and the defect rate visibly rises as Station 8's condition worsens.
+6. The dataset is reproducible: regenerating it produces a byte-identical
+   CSV file.
+
+The script prints a PASS/FAIL line for every check plus summary
+statistics (per-column descriptive stats, defect counts by inspection
+station, and the sensor coverage distribution).
+
+## Columns in `production_data.csv`
+
+| Column | Description |
+|---|---|
+| `vehicle_id` | Unique ID for each simulated vehicle |
+| `timestamp` | Simulated time the vehicle reached this station |
+| `station_id` | `S01`–`S30` |
+| `station_type` | Body Construction / Paint / Final Assembly |
+| `cycle_time` | Seconds spent at this station |
+| `queue_length` | Vehicles waiting ahead of this station |
+| `throughput` | Approx. vehicles/hour at this station at this time |
+| `torque` | Physical sensor reading (may be missing) |
+| `temperature` | Physical sensor reading (may be missing) |
+| `vibration` | Physical sensor reading (may be missing) |
+| `part_quality` | Incoming component quality score (0–1) |
+| `operator_variation` | Human-driven variability factor |
+| `sensor_coverage` | `HIGH` / `PARTIAL` / `MANUAL` for this station |
+| `inspection_result` | `PASS`/`FAIL` at inspection stations, else blank |
+| `defect` | Boolean, only meaningful at inspection stations |
+
+## Design Notes / Assumptions
+
+- Data is fully synthetic, generated with `numpy`'s reproducible random
+  number generator — no real company or enterprise data was used or is
+  required.
+- Missing values are **not** imputed at this stage on purpose — sensor
+  inference is planned as a distinct, later stage of the project.
+- No predictions or ML outputs are hardcoded or faked anywhere in this
+  stage; only the input dataset itself is generated.
