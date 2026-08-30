@@ -7,18 +7,13 @@ built for the Accenture Innovation Challenge 2026 (DigitalTwin.ai track).
 > enterprise, company, or manufacturer data is used anywhere in this
 > prototype.
 
-## Project Status: Stage 1 — Foundation & Synthetic Data
-
-This is the **first stage** of development. At this stage we have built:
+## Prototype Status — Synthetic Production Twin Foundation
+The current prototype establishes the production-data layer of TwinPulse and a reproducible test scenario for evaluating future predictive capabilities.
 
 - The project scaffolding.
 - A reproducible synthetic production-data generator (`src/data_generator.py`).
 - A validation script that checks the generated data behaves the way a
   realistic assembly line data would (`notebooks/validate_dataset.py`).
-
-**Not built yet** (future stages): sensor-gap inference/imputation,
-anomaly/defect prediction models, and the Streamlit dashboard (`app.py`
-is currently a placeholder).
 
 ## The Simulated Line
 
